@@ -16,11 +16,6 @@ const floatfields = [
     "Største segment (cM)",
 ]
 
-const dataFields = [
-    "Navn", "Land", "Totalt cM som er delt", "Største segment (cM)"
-]
-
-
 const transformer = (v: any, col: string): any => {
     if(floatfields.indexOf(col) > -1) {
         return (v as string).replace(' ', '').replace(',', '.');
@@ -28,15 +23,30 @@ const transformer = (v: any, col: string): any => {
     return v;
 }
 
-const prepareDatafile = (data: any): DataFrame => {
-    const output = PapaParse.parse(data.trim(), {
+const prepareDatafile = (data: any, type?: string): DataFrame => {
+    let dataFields = []
+    
+    let parseoptions = {
         delimiter: ',',
         quoteChar: '"',
         header: true,
         dynamicTyping: true,
-        transform: transformer,
         //preview: 10
-    })
+    }    
+
+    if(type === "ftdna") {
+        console.log("Parsing ftdna file")
+        dataFields = [
+            "Full Name", "Email", "Shared cM", "Longest Block"
+        ]
+    } else {
+        parseoptions['transform'] = transformer
+        dataFields = [
+            "Navn", "Land", "Totalt cM som er delt", "Største segment (cM)"
+        ]
+    }
+
+    const output = PapaParse.parse(data.trim(), parseoptions)
     return new DataFrame(output.data).select(...dataFields)
 }
 
@@ -44,22 +54,40 @@ const prepareDatafile = (data: any): DataFrame => {
 const handleFileUpload = (e: any) => {
     const reader = new FileReader();
     const filename = e.path[0].files[0].name;
-    const username = filename.split(" ").splice(0, 1).join(" ");
+    const filetype = e.path[0].files[0].type;
+
+    let username = undefined;
     dataPrefixes.push(username);
+
+    console.log(filetype);
 
     reader.onload = (ev: any) => {
         if(reader.readyState == FileReader.DONE) {
-            const uploaded = new JSZip();
-            uploaded.loadAsync(ev.target.result).then(() => {
-                const compressed = uploaded.file(/csv/)[0];
-                compressed.async("text").then(data => {
-                    const df = prepareDatafile(data);
-                    updatedb(username, df).then(e => refresh());
-                });
-            })
+            if(filetype === "text/csv") {
+                username = filename.split("_").splice(0, 1)
+                const data = ev.target.result
+                const df = prepareDatafile(data, "ftdna")
+                updatedb(username, df).then(e => refresh())
+            }
+            else {
+                username = filename.split(" ").splice(0, 1).join(" ");
+                const uploaded = new JSZip();
+                uploaded.loadAsync(ev.target.result).then(() => {
+                    const compressed = uploaded.file(/csv/)[0];
+                    compressed.async("text").then(data => {
+                        const df = prepareDatafile(data);
+                        updatedb(username, df).then(e => refresh());
+                    });
+                })
+            }
         }
     }
-    reader.readAsBinaryString(e.path[0].files[0]);
+    if(filetype === "text/csv") {
+        reader.readAsText(e.path[0].files[0]);
+    }
+    else {
+        reader.readAsBinaryString(e.path[0].files[0]);
+    }
 }
 
 async function refresh() {

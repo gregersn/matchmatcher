@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "parcel ./src/index.html --no-cache"
+    "start": "parcel ./src/index.html --no-cache",
+    "build": "parcel build ./src/index.html"
   },
   "devDependencies": {
     "@types/jszip": "^3.1.4",

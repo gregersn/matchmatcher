@@ -18,7 +18,7 @@ export const showData = (columns: string[]) => {
                 ]
                 return out
             }    
-        ), ['Navn', 'Land', ...columns])
+        ), ['Navn', '  ', ...columns])
     });
 }
 

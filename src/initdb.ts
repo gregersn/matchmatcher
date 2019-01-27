@@ -99,7 +99,6 @@ export const getfromdb = async () => {
 }
 
 export function resetdb() {
-    console.log("Fjas")
     if(db === undefined) {
         throw("Not connected to database")
     }
